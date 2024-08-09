@@ -1,9 +1,17 @@
 package org.personal.review_service.repository;
 
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.PathBuilder;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.personal.review_service.domain.QReview;
 import org.personal.review_service.domain.Review;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -32,22 +40,47 @@ public class ReviewRepositoryImpl implements ReviewRepositoryCustom {
     }
 
     @Override
-    public List<Review> findReviewsByUserId(Long userId) {
+    public Page<Review> findReviewsByUserId(Long userId, Pageable pageable) {
         QReview review = QReview.review;
 
-        return jpaQueryFactory
+        JPQLQuery<Review> query = jpaQueryFactory
                 .selectFrom(review)
-                .where(review.userId.eq(userId), review.reviewIsDeleted.eq(Boolean.FALSE))
-                .fetch();
+                .where(review.userId.eq(userId), review.reviewIsDeleted.eq(Boolean.FALSE));
+
+        // Pageable에서 하나의 정렬 조건만이 존재하기에 이를 적용
+        Sort.Order order = pageable.getSort().iterator().next();
+        PathBuilder pathBuilder = new PathBuilder<>(Review.class, "review");
+        query.orderBy(new OrderSpecifier<>(
+                order.isAscending() ? Order.ASC : Order.DESC,
+                pathBuilder.get(order.getProperty())
+        ));
+
+        query.offset(pageable.getOffset());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(query.fetch(), pageable, query.fetchCount());
     }
 
     @Override
-    public List<Review> findReviewsByLocationId(Long locationId) {
+    public Page<Review> findReviewsByLocationId(Long locationId, Pageable pageable) {
         QReview review = QReview.review;
 
-        return jpaQueryFactory
+
+        JPQLQuery<Review> query = jpaQueryFactory
                 .selectFrom(review)
-                .where(review.locationId.eq(locationId), review.reviewIsDeleted.eq(Boolean.FALSE))
-                .fetch();
+                .where(review.locationId.eq(locationId), review.reviewIsDeleted.eq(Boolean.FALSE));
+
+        // Pageable에서 하나의 정렬 조건만이 존재하기에 이를 적용
+        Sort.Order order = pageable.getSort().iterator().next();
+        PathBuilder pathBuilder = new PathBuilder<>(Review.class, "review");
+        query.orderBy(new OrderSpecifier<>(
+                order.isAscending() ? Order.ASC : Order.DESC,
+                pathBuilder.get(order.getProperty())
+        ));
+
+        query.offset(pageable.getOffset());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(query.fetch(), pageable, query.fetchCount());
     }
 }
